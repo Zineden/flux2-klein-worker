@@ -1,0 +1,7 @@
+{
+  "input": {
+    "prompt": "make the background pure white studio product background, keep the subject unchanged",
+    "image": "https://raw.githubusercontent.com/comfyanonymous/ComfyUI/master/tests-ui/tests/assets/example.png",
+    "guidance_scale": 2.5
+  }
+}
