@@ -9,12 +9,15 @@ ENV DEBIAN_FRONTEND=noninteractive \
     # RunPod 엔드포인트에 네트워크 볼륨을 붙이면 /runpod-volume 에 마운트됨.
     HF_HOME=/runpod-volume/huggingface
 
+WORKDIR /app
+
 RUN pip install --no-cache-dir -U pip && \
     pip install --no-cache-dir hf_transfer
 
-COPY requirements.txt /requirements.txt
-RUN pip install --no-cache-dir -r /requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY handler.py /handler.py
+COPY handler.py .
 
-CMD ["python", "-u", "/handler.py"]
+# 상대경로 handler.py — RunPod의 정적 핸들러 검사(CMD 파싱)와 호환.
+CMD ["python", "-u", "handler.py"]
