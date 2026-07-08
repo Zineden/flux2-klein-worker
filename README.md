@@ -42,11 +42,13 @@ curl -X POST https://api.runpod.ai/v2/<endpoint_id>/runsync \
 1. Create a Serverless endpoint from this GitHub repo (Dockerfile build).
 2. **GPU:** 16 GB+ (the worker uses `enable_model_cpu_offload` by default via `CPU_OFFLOAD=1`;
    set `CPU_OFFLOAD=0` on a 24 GB+ GPU for a bit more speed).
-3. **No network volume needed.** The model (~13 GB) is baked into the image at build time
-   (`snapshot_download` into `HF_HOME=/opt/hf`), so there is no runtime download and no
-   cold-start re-download. `hf_xet` is uninstalled before the bake so the download uses plain
-   HTTPS (the Xet backend in `huggingface_hub` 1.x hangs at 0% during build). Trade-off: a
-   large image (~15 GB) and a slower first build.
+3. **Use RunPod Model Caching (not baking).** The model is **not** in the image — the image is
+   small (fast to provision). In the endpoint's **Endpoint Configuration**, set the **Model**
+   field to `black-forest-labs/FLUX.2-klein-4B`. RunPod pre-positions the model on host machines
+   at `/runpod-volume/huggingface-cache/` (matched by `HF_HOME`), so workers cold-start in
+   seconds, and you aren't billed while the model downloads. No manual network volume needed.
+   (Baking a 13 GB layer made cold starts 2–3 min because that unique layer is pulled fresh per
+   worker; RunPod explicitly recommends caching over baking.)
 4. **No HF token needed** (Apache-2.0, non-gated). `HF_TOKEN` env is optional.
 5. **R2 output (recommended):** set these env vars on the endpoint so results are stored in
    Cloudflare R2 and returned as public URLs (same values as the bg/qwen workers):
