@@ -36,8 +36,9 @@ curl -X POST https://api.runpod.ai/v2/<endpoint_id>/runsync \
 1. Create a Serverless endpoint from this GitHub repo (Dockerfile build).
 2. **GPU:** 16 GB+ (the worker uses `enable_model_cpu_offload` by default via `CPU_OFFLOAD=1`;
    set `CPU_OFFLOAD=0` on a 24 GB+ GPU for a bit more speed).
-3. **Network volume (recommended):** attach one (~20 GB). The model (~13 GB) caches under
-   `HF_HOME=/runpod-volume/huggingface`, so it downloads once instead of on every cold start.
+3. **No network volume needed.** The model (~13 GB) is baked into the image at build time
+   (`snapshot_download` into `HF_HOME=/opt/hf`), so there is no runtime download and no
+   cold-start re-download. The trade-off is a large image (~15 GB) and a slower first build/pull.
 4. **No HF token needed** (Apache-2.0, non-gated). `HF_TOKEN` env is optional.
 
 ## Notes

@@ -1,5 +1,4 @@
-# FLUX.2-klein-4B RunPod serverless worker (diffusers)
-# torch/cuda 포함 베이스 → pip 설치만 하므로 빌드가 가볍다(모델은 런타임에 HF에서 다운로드).
+# FLUX.2-klein-4B RunPod serverless worker (diffusers) — 모델을 이미지에 굽는다.
 # torch 2.9(cuda12.8): diffusers-git의 FLUX.2 autoencoder가 등록하는 FlashAttention-3
 # custom op은 PEP-604 유니온 주석(`float | None`)을 쓰는데, torch 2.4의 infer_schema는
 # 이를 파싱하지 못해 임포트가 실패했다. torch 2.9는 지원. RunPod 호스트도 CUDA 12.8.
@@ -7,10 +6,9 @@ FROM pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    HF_HUB_ENABLE_HF_TRANSFER=1 \
-    # HF 캐시를 네트워크 볼륨에 두어 콜드스타트마다 모델(~13GB) 재다운로드 방지.
-    # RunPod 엔드포인트에 네트워크 볼륨을 붙이면 /runpod-volume 에 마운트됨.
-    HF_HOME=/runpod-volume/huggingface
+    # 모델을 빌드 시점에 이미지 안(HF 캐시)에 굽는다 → 네트워크 볼륨 불필요,
+    # 런타임 다운로드 없음(콜드스타트마다 재다운로드/디스크부족 문제 제거).
+    HF_HOME=/opt/hf
 
 # git 필요: requirements 의 diffusers 를 git 저장소에서 설치(Flux2KleinPipeline 신규 클래스).
 RUN apt-get update && \
@@ -19,11 +17,16 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir -U pip && \
-    pip install --no-cache-dir hf_transfer
+RUN pip install --no-cache-dir -U pip
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# 모델(~13GB)을 빌드 시점에 이미지로 다운로드(굽기). 런타임엔 이미 존재하므로 재다운로드 없음.
+# Xet 가속기는 비활성(HF_HUB_DISABLE_XET=1) — 런타임 디스크부족 때 봤던 writer 오류 회피,
+# 빌드 디스크는 넉넉하므로 표준 다운로더로 안정적으로 받는다.
+ARG MODEL_ID=black-forest-labs/FLUX.2-klein-4B
+RUN HF_HUB_DISABLE_XET=1 python -c "from huggingface_hub import snapshot_download; snapshot_download('${MODEL_ID}')"
 
 COPY handler.py .
 
