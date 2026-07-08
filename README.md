@@ -23,7 +23,13 @@ supports multi-reference editing.
 
 If no image is provided it runs text→image; with an image it edits/uses it as reference.
 
-**Output:** `{ "image": "data:image/png;base64,..." }` or `{ "error": "..." }`
+**Image source:** URLs are fetched by the worker with a browser `User-Agent`/`Referer`
+(alicdn and similar block the default `urllib`/`requests` UA with `420`).
+
+**Output:** `{ "image_url": "https://<r2-public>/klein/<sha256>.png" }` when R2 is configured
+(the worker uploads the result to Cloudflare R2 and returns a public URL, content-addressed
+by `sha256(source+prompt+params)` with a HEAD cache check). If R2 is **not** configured it
+falls back to `{ "image": "data:image/png;base64,..." }`. On error: `{ "error": "..." }`.
 
 ```bash
 curl -X POST https://api.runpod.ai/v2/<endpoint_id>/runsync \
@@ -40,6 +46,10 @@ curl -X POST https://api.runpod.ai/v2/<endpoint_id>/runsync \
    (`snapshot_download` into `HF_HOME=/opt/hf`), so there is no runtime download and no
    cold-start re-download. The trade-off is a large image (~15 GB) and a slower first build/pull.
 4. **No HF token needed** (Apache-2.0, non-gated). `HF_TOKEN` env is optional.
+5. **R2 output (recommended):** set these env vars on the endpoint so results are stored in
+   Cloudflare R2 and returned as public URLs (same values as the bg/qwen workers):
+   `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BASE`,
+   and optionally `R2_PREFIX` (default `klein`). Without them the worker returns base64.
 
 ## Notes
 - Requires **diffusers from git** (Flux2KleinPipeline is new) — pinned in `requirements.txt`.
