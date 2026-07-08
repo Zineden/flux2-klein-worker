@@ -1,6 +1,9 @@
 # FLUX.2-klein-4B RunPod serverless worker (diffusers)
 # torch/cuda 포함 베이스 → pip 설치만 하므로 빌드가 가볍다(모델은 런타임에 HF에서 다운로드).
-FROM pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+# torch 2.9(cuda12.8): diffusers-git의 FLUX.2 autoencoder가 등록하는 FlashAttention-3
+# custom op은 PEP-604 유니온 주석(`float | None`)을 쓰는데, torch 2.4의 infer_schema는
+# 이를 파싱하지 못해 임포트가 실패했다. torch 2.9는 지원. RunPod 호스트도 CUDA 12.8.
+FROM pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
