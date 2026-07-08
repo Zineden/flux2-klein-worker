@@ -8,7 +8,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     # 모델을 빌드 시점에 이미지 안(HF 캐시)에 굽는다 → 네트워크 볼륨 불필요,
     # 런타임 다운로드 없음(콜드스타트마다 재다운로드/디스크부족 문제 제거).
-    HF_HOME=/opt/hf
+    HF_HOME=/opt/hf \
+    # hf_transfer(Rust 가속 다운로더)로 대용량 모델을 빠르고 안정적으로 받는다
+    # (일반 HTTPS는 8GB transformer에서 매우 느림/멈춤).
+    HF_HUB_ENABLE_HF_TRANSFER=1
 
 # git 필요: requirements 의 diffusers 를 git 저장소에서 설치(Flux2KleinPipeline 신규 클래스).
 RUN apt-get update && \
@@ -22,13 +25,13 @@ RUN pip install --no-cache-dir -U pip
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 # hf_xet(huggingface_hub 1.x의 Xet 백엔드) 제거 — 빌드 시 대용량 파일 다운로드가 0%에서
-# 멈추는 원인. HF_HUB_DISABLE_XET 플래그는 1.x에서 듣지 않으므로 패키지 자체를 제거해
-# 일반 HTTPS 다운로더로 폴백시킨다(안정적). non-gated 모델이라 토큰 없이도 받는다.
-RUN pip uninstall -y hf_xet || true
+# 멈추는 원인(HF_HUB_DISABLE_XET 플래그는 1.x에서 듣지 않음). 대신 hf_transfer 설치해 가속.
+RUN pip uninstall -y hf_xet || true && \
+    pip install --no-cache-dir hf_transfer
 
-# 모델(~13GB)을 빌드 시점에 이미지로 다운로드(굽기). 런타임엔 이미 존재하므로 재다운로드 없음.
+# 모델(~13GB)을 빌드 시점에 이미지로 다운로드(굽기). hf_transfer로 빠르게. 런타임 재다운로드 없음.
 ARG MODEL_ID=black-forest-labs/FLUX.2-klein-4B
-RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('${MODEL_ID}', max_workers=4)"
+RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('${MODEL_ID}')"
 
 COPY handler.py .
 
