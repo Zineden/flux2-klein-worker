@@ -1,7 +1,11 @@
 runpod>=1.6.0
 git+https://github.com/huggingface/diffusers.git
-transformers>=4.44.0
+# transformers 5.x는 huggingface_hub 1.x(Xet 전용, hf_transfer 폐기)를 끌어와 빌드 다운로드가
+# 0%에서 멈춘다. 4.x로 고정해 huggingface_hub 0.x + hf_transfer 고속 다운로드를 유지(=31353f4 환경).
+transformers>=4.44.0,<5
 accelerate>=0.33.0
+# huggingface_hub 0.x로 고정 + hf_transfer 익스트라 → 비인증 대용량 모델도 빠르고 안정적으로 받는다.
+huggingface_hub[hf_transfer]<1.0
 sentencepiece
 protobuf
 Pillow

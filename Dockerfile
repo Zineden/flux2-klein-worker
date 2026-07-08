@@ -23,13 +23,11 @@ WORKDIR /app
 RUN pip install --no-cache-dir -U pip
 
 COPY requirements.txt .
+# requirements가 huggingface_hub 0.x + hf_transfer를 고정 설치한다(Xet 없음, 고속 다운로더 유효).
 RUN pip install --no-cache-dir -r requirements.txt
-# hf_xet(huggingface_hub 1.x의 Xet 백엔드) 제거 — 빌드 시 대용량 파일 다운로드가 0%에서
-# 멈추는 원인(HF_HUB_DISABLE_XET 플래그는 1.x에서 듣지 않음). 대신 hf_transfer 설치해 가속.
-RUN pip uninstall -y hf_xet || true && \
-    pip install --no-cache-dir hf_transfer
 
-# 모델(~13GB)을 빌드 시점에 이미지로 다운로드(굽기). hf_transfer로 빠르게. 런타임 재다운로드 없음.
+# 모델(~13GB)을 빌드 시점에 이미지로 굽는다. huggingface_hub 0.x + hf_transfer로 고속 다운로드
+# (HF_HUB_ENABLE_HF_TRANSFER=1). 런타임 재다운로드 없음.
 ARG MODEL_ID=black-forest-labs/FLUX.2-klein-4B
 RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('${MODEL_ID}')"
 
