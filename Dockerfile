@@ -9,7 +9,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     # RunPod Model Caching 경로(콘솔 Model 필드로 미리 캐시) → from_pretrained가 오프라인으로 읽음.
     HF_HOME=/runpod-volume/huggingface-cache \
-    HF_HUB_OFFLINE=1
+    HF_HUB_OFFLINE=1 \
+    # CPU 오프로딩 OFF → 모델을 GPU에 상주시켜 스텝당 CPU↔GPU 스트리밍 제거(24GB에 ~16GB 가중치 적재).
+    # 실행시간을 대폭 단축(목표 ~5초/장). VRAM 부족 시 OOM → 그때만 다시 1로.
+    CPU_OFFLOAD=0
 
 WORKDIR /app
 
